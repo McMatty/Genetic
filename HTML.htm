@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+</head>
+<body>
+    <h2 id="generation"></h2>
+    <div>
+        <div id="geneResult" style="width: 500px; float :left;"></div>
+        <div id="geneWeight" style="width:auto; float :left;"></div>
+    </div>
+</body>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+<script type="text/javascript">
+    var generationCount = 0;
+
+    function replaceAt(s, n, t) {
+        return s.substring(0, n) + t + s.substring(n + 1);
+    }
+
+    var Gene = function (targetString) {
+        this._targetString    = targetString;
+        this._generatedString = "";
+        this._weight          = 0;
+        this._stringLength    = this._targetString.length;
+
+        var stringLength = this._targetString.length;
+        while (stringLength--) {
+            this._generatedString += String.fromCharCode(Math.floor(Math.random() * 255));
+        };
+
+        this.calcWeight();
+    };
+
+    Gene.prototype.mate = function(gene){
+        var childGene    = new Gene(this._targetString);
+        var mateString   = "";
+
+        for (var i = 0; i < this._stringLength; i++) {
+            //var index = Math.floor(Math.random() * this._stringLength);
+            mateString += Math.random() > 0.5 ? this._generatedString[i] : gene._generatedString[i];
+        };
+
+        childGene._generatedString = mateString;
+        childGene.calcWeight();
+
+        return childGene;
+    }
+
+    Gene.prototype.calcWeight = function () {        
+        var totalScore   = 0;
+
+        for (var i = 0; i < this._stringLength; i++) {
+            var score = (this._targetString.charCodeAt(i) - this._generatedString.charCodeAt(i));
+            totalScore += score * score; // remove negative values
+        }
+
+        this._weight = totalScore;
+    }
+
+    Gene.prototype.calcCharWeight = function (pos) {
+        var totalScore   = 0;
+        var score        = (this._targetString.charCodeAt(pos) - this._generatedString.charCodeAt(pos));
+
+        return score * score;
+    }
+
+    Gene.prototype.mutate = function (chance) {
+        if (Math.random() > chance) { return; }
+
+        var mutatedString     = "";
+        var index             = Math.floor(Math.random() * this._stringLength);        
+        var newChar           = String.fromCharCode(Math.floor(Math.random() * 255));
+        this._generatedString = replaceAt(this._generatedString, index, newChar);
+        
+        this.calcWeight();
+    }
+
+    var Display = function (targetString, size) {
+        _self               = this;
+        _self._geneArray    = [];
+        _self._size         = size;
+        _self._targetString = targetString;
+
+        for (var i = 0; i < _self._size; i++) {
+            var myGene = new Gene(_self._targetString);
+            _self._geneArray.push(myGene);
+        }
+    }
+
+    Display.prototype.generateGenes = function () {
+        var motherGene = _self._geneArray[0];
+        var index       = Math.random() > 0.25 ? 1 : Math.floor(Math.random() * _self._geneArray.length);
+        var fatherGene = _self._geneArray[index];
+
+        _self._geneArray = []
+
+        for (var i = 0; i < _self._size; i++) {
+            var myGene = motherGene.mate(fatherGene);
+            myGene.mutate(0.75);
+            _self._geneArray.push(myGene);
+        }
+
+        _self._geneArray.sort(function (a, b) { return a._weight - b._weight });
+    }
+
+    Display.prototype.populateFunction = function () {
+        _self.generateGenes();
+        var geneResults="";
+        var geneWeights="";
+
+        geneResults += ("<ul>");
+        geneWeights += ("<ul>");
+
+        for (var i = 0; i < _self._geneArray.length; i++) {
+            geneResults += ("<li>" + _self._geneArray[i]._generatedString + "</li>");
+            geneWeights += ("<li> GeneWeight :" + _self._geneArray[i]._weight + "</li>");
+
+            if (_self._geneArray[i]._weight === 0) {
+                geneResults += ("</ul>");
+                geneWeights += ("</ul>");
+
+                $("#geneResult").html(geneResults);
+                $("#geneWeight").html(geneWeights);
+                $("#generation").html("Generation: " + generationCount);
+
+                return;
+            }
+        }
+
+        geneResults += ("</ul>");
+        geneWeights += ("</ul>");
+        $("#geneResult").html(geneResults);
+        $("#geneWeight").html(geneWeights);
+        $("#generation").html("Generation: " + generationCount);
+
+        setTimeout(function () { _self.populateFunction() }, 20);
+        generationCount++;
+    }
+
+    displayObject = new Display("Hi my name is Matthew and this is my first genetic algorithim", 35);
+    displayObject.populateFunction();
+    
+</script>
+</html>
